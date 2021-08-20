@@ -1,24 +1,12 @@
-a {
-    padding-left: 10px;
-}
+@import '../node_modules/flatpickr/dist/flatpickr.min.css';
 
-.item-list {
-    border-style: solid;
-    height: 100%;
-}
 
-header {
-    width: 100%;
-    height: 40px;
-    background-color: darkgreen;
-    position: fixed;
-}
-
+                                /* General UI */
 .interface {
     display: grid;
     grid-template-columns: 0.3fr 0.7fr;
     position: relative;
-    top: 50px;
+    top: 60px;
     height: 100vh;
 }
 
@@ -26,23 +14,165 @@ header {
     display: flex;
     flex-direction: column;
     height: 100%;
+    margin-left: 10px;
 }
 
+
+                                /* Item */
 .item {
+    display: block;
+    max-width: 770px;
+    height: 40px;
+    font-size: 0;
+    box-sizing: border-box;
+    border-top-style: solid;
+    border-color: rgba(254,184,28,255);
+}
+
+.header-container {
+    display: block;
     width: 100%;
-    height: 200px;
-    border-style: solid;
+    height: 40px;
+    color: white;
+    box-sizing: border-box;
 }
 
 .item-header {
+    display: flex;
+    flex-direction: row;
+    font-size: 18px;
     width: 100%;
-    height: 20%;
-    background-color: gray;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.item-header-subitem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
+
+.item-expanded {
+    height: 200px;
+}
+
+
+/* Item Title */
+#input-title-id {
+    width: 100%;
+    height: 75%;
+}
+
+#title-id {
+    align-self: flex-start;
+
+}
+/* 
+.item-title>span {
+    align-self: flex-start;
+} */
+
+.item-title {
+    flex-grow: 2;
+    color: rgba(254,184,28,255);
+    margin-left: 10px;
+}
+
+
+/* Item Due Date */
+.item-due-date {
+    margin: auto 15px auto 15px;
+    flex-grow: 1;
+    color: rgba(254,184,28,255);
+}
+
+
+/* Item Body */
+.item-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    width: 100%;
+    height: 160px;
+    color: white;
+    font-size: 16px;
+    background-color: rgba(1,84,134,255);
+}
+
+.item-body>p {
+    margin-left: 15px;
+    width: 100%;
+    height: 100%;
+}
+
+.item-body>textarea {
+    align-self: center;
+    font-size: 16px;
+}
+
+
+                                    /* Icons */
+.expand-body-icon {
+    max-width: 42px;
+    flex-grow: 0.25;
+    color: rgba(254,184,28,255);
+}
+
+.completed-item-icon {
+    max-width: 40px;
+    max-height: 40px;
+    flex-grow: 0.25;
+}
+
+.completed-item-icon:first-child {
+    color: rgba(254,184,28,255);
+}
+
+
+                                    /* Item List */
+.item-list {
+    border-style: solid;
+    height: 100%;
+    padding: 10px 10px 10px 10px;
+    color: rgba(254,184,28,255);
+}
+
+#add-item-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(254,184,28,255);
+    height: 30px;
+    max-width: 770px;
+    margin-top: 3px;
     color: white;
 }
 
-.item-body {
+#add-item-button:hover {
+    background-color: rgba(255,209,1,255);
+}
+
+
+/* Misc */
+a {
+    margin: 10px 20px 0px 20px;
+    font-size: 25px;
+}
+
+header {
+    position: fixed;
     width: 100%;
-    height: 80%;
-    color: black;
+    height: 50px;
+    border-bottom: 3px solid #000;
+    background-color: rgba(0,59,91,255);
+}
+
+.off {
+    display: none;
+}
+
+input[type='text'] {
+    font-size: 18px;
 }
