@@ -91,89 +91,125 @@ function toggleExpandCardBody() {
   }
 }
 
-function createCard(title='No title', dueDate='No due date', body='') {
-  const item = document.createElement('div');
+function createItemHeader(title, dueDate) {
+  function createTitle(t) {
+    const titleContainer = document.createElement('div');
+    const inputTitle = document.createElement('input');
+    const itemTitle = document.createElement('span');
+    inputTitle.setAttribute('type', 'text');
+    inputTitle.classList.toggle('off');
+    inputTitle.setAttribute('id', 'input-title-id');
+    inputTitle.setAttribute('maxlength', '20');
+    inputTitle.setAttribute('size', '20');
+    itemTitle.setAttribute('id', 'title-id');
+  
+    inputTitle.addEventListener('keypress', renameItem);
+    itemTitle.addEventListener('click', toggleInput);
+    itemTitle.textContent = t;
+    titleContainer.classList.toggle('item-title');
+    titleContainer.classList.toggle('item-header-subitem');
+  
+    titleContainer.appendChild(itemTitle);
+    titleContainer.appendChild(inputTitle);
+    return titleContainer;
+  }
+
+  function createDueDate(d) {
+    const dueDateContainer = document.createElement('div');
+    const inputDueDate = document.createElement('input');
+    const dueDateText = document.createElement('p');
+    inputDueDate.setAttribute('type', 'text');
+    dueDateText.addEventListener('click', toggleDueDate);
+    inputDueDate.classList.toggle('off');
+    dueDateText.textContent = d;
+    dueDateContainer.classList.toggle('item-due-date');
+    dueDateContainer.classList.toggle('item-header-subitem');
+    dueDateContainer.appendChild(dueDateText);
+    dueDateContainer.appendChild(inputDueDate);
+    return dueDateContainer;
+  }
+  
+  function createHeaderIcons() {
+    const expandIconContainer = document.createElement('div');
+    const expandIcon = document.createElement('i');
+    expandIcon.classList.toggle('material-icons');
+    expandIcon.textContent = 'expand_more';
+    expandIcon.addEventListener('click', toggleExpandCardBody);
+    expandIconContainer.classList.toggle('item-header-subitem');
+    expandIconContainer.classList.toggle('expand-body-icon');
+    expandIconContainer.appendChild(expandIcon);
+    
+    const completedIconContainer = document.createElement('div');
+    const completedIcon = document.createElement('i');
+    completedIconContainer.classList.toggle('item-header-subitem');
+    completedIconContainer.classList.toggle('completed-item-icon');
+    completedIcon.classList.toggle('material-icons');
+    completedIcon.textContent = 'radio_button_unchecked';
+    completedIconContainer.appendChild(completedIcon);
+
+    const icons = {
+      completedIcon: completedIconContainer,
+      expandIcon: expandIconContainer
+    }
+  
+    return icons;
+  }
+
+  // gap
+  const gap = document.createElement('div');
+  gap.classList.toggle('gap');
+
+  // Header container
   const itemHeader = document.createElement('div');
   const itemHeaderContainer = document.createElement('div');
-  const itemBody = document.createElement('div');
-  const titleContainer = document.createElement('div');
-  const dueDateContainer = document.createElement('div');
-  const expandIconContainer = document.createElement('div');
-  const expandIcon = document.createElement('i');
-  const completedIconContainer = document.createElement('div');
+  itemHeaderContainer.classList.toggle('header-container');
+  itemHeader.classList.toggle('item-header');
 
+  // Get header components
+  const icons = createHeaderIcons();
+  const completedIcon = icons.completedIcon;
+  const expandIcon= icons.expandIcon;
+  const titleElement = createTitle(title);
+  const dueDateElement = createDueDate(dueDate);
+
+  itemHeader.append(completedIcon, titleElement, gap, dueDateElement,
+    expandIcon);
+  itemHeaderContainer.appendChild(itemHeader);
+
+  return itemHeaderContainer;
+}
+
+function createItemBody(body) {
+  const itemBody = document.createElement('div');
+  
   // Elements inside of the containers
   const bodyText = document.createElement('p');
   const inputBody = document.createElement('textarea');
-  const inputTitle = document.createElement('input');
-  const gap = document.createElement('div');
-  const inputDueDate = document.createElement('input');
-  const dueDateText = document.createElement('p');
-  const itemTitle = document.createElement('span');
-  const completedIcon = document.createElement('i');
 
-  completedIconContainer.classList.toggle('item-header-subitem');
-  completedIconContainer.classList.toggle('completed-item-icon');
-  inputTitle.setAttribute('type', 'text');
   inputBody.classList.toggle('off');
-  inputTitle.classList.toggle('off');
-  inputDueDate.setAttribute('type', 'text');
-  expandIcon.classList.toggle('material-icons');
-  expandIcon.textContent = 'expand_more';
-  completedIcon.classList.toggle('material-icons');
-  completedIcon.textContent = 'radio_button_unchecked';
-
-  inputTitle.setAttribute('id', 'input-title-id');
-  inputTitle.setAttribute('maxlength', '20');
-  inputTitle.setAttribute('size', '20');
-  itemTitle.setAttribute('id', 'title-id');
   inputBody.setAttribute('maxlength', '1000');
   inputBody.setAttribute('rows', '5');
   inputBody.setAttribute('cols', '70');
-
-  inputTitle.addEventListener('keypress', renameItem);
-  itemTitle.addEventListener('click', toggleInput);
-  expandIcon.addEventListener('click', toggleExpandCardBody);
-  expandIconContainer.classList.toggle('item-header-subitem');
-  expandIconContainer.classList.toggle('expand-body-icon');
   inputBody.addEventListener('keypress', editItemBody);
   itemBody.addEventListener('click', toggleItemBody);
-  dueDateText.addEventListener('click', toggleDueDate);
-  inputDueDate.classList.toggle('off');
-
-  expandIconContainer.appendChild(expandIcon);
-  titleContainer.appendChild(itemTitle);
-  titleContainer.appendChild(inputTitle);
-  completedIconContainer.appendChild(completedIcon);
-
-  itemTitle.textContent = title;
-  dueDateText.textContent = dueDate;
   itemBody.textContent = body;
-
-  // Attach styles
-  item.classList.toggle('item');
-  gap.classList.toggle('gap');
-  itemHeader.classList.toggle('item-header');
   itemBody.classList.toggle('item-body');
   itemBody.classList.toggle('off');
-  titleContainer.classList.toggle('item-title');
-  dueDateContainer.classList.toggle('item-due-date');
-  dueDateContainer.classList.toggle('item-header-subitem');
-  titleContainer.classList.toggle('item-header-subitem');
-  itemHeaderContainer.classList.toggle('header-container');
-  // inputDueDate.addEventListener('click', updateDate);
-
   itemBody.appendChild(bodyText);
   itemBody.appendChild(inputBody);
-  dueDateContainer.appendChild(dueDateText);
-  dueDateContainer.appendChild(inputDueDate);
-  itemHeader.appendChild(completedIconContainer);
-  itemHeader.appendChild(titleContainer);
-  itemHeader.appendChild(gap);
-  itemHeader.appendChild(dueDateContainer);
-  itemHeader.appendChild(expandIconContainer);
-  itemHeaderContainer.appendChild(itemHeader);
-  item.appendChild(itemHeaderContainer);
+
+  return itemBody;
+}
+
+function createCard(title='No title', dueDate='No due date', body='') {
+  const item = document.createElement('div');
+  const itemHeader = createItemHeader(title, dueDate);
+  const itemBody = createItemBody(body);
+  
+  // Attach styles
+  item.classList.toggle('item');
+  
+  item.appendChild(itemHeader);
   item.appendChild(itemBody);
 
   return item;
