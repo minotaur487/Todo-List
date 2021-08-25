@@ -1,7 +1,6 @@
 import './style.css';
-import { Item } from './object.js';
-import { restoreLocal, storageAvailable } from './storage';
 import flatpickr from 'flatpickr';
+import { saveLocal } from './storage';
 
 
 function toggleInput() {
@@ -12,10 +11,17 @@ function toggleInput() {
   inputTitle.value = itemTitle.textContext;
 }
 
+function removeCurrentItem() {
+  const item = this.closest('.item');
+  this.classList.toggle('off');
+  this.nextElementSibling.classList.toggle('off');
+  item.classList.toggle('completed-icon-onclick');
+}
+
 function handleEscape(e) {
   if (e.key === 'Escape') {
     const uninitializedItems = document.querySelector('input#input-title-id:not(.off)');
-    uninitializedItems.parentElement.parentElement.parentElement.remove();
+    uninitializedItems.closest('.item').remove();
   }
 }
 
@@ -133,19 +139,24 @@ function createItemHeader(title, dueDate) {
     const expandIconContainer = document.createElement('div');
     const expandIcon = document.createElement('i');
     expandIcon.classList.toggle('material-icons');
-    expandIcon.textContent = 'expand_more';
-    expandIcon.addEventListener('click', toggleExpandCardBody);
     expandIconContainer.classList.toggle('item-header-subitem');
     expandIconContainer.classList.toggle('expand-body-icon');
+    expandIcon.textContent = 'expand_more';
+    expandIcon.addEventListener('click', toggleExpandCardBody);
     expandIconContainer.appendChild(expandIcon);
     
     const completedIconContainer = document.createElement('div');
+    const uncompletedIcon = document.createElement('i');
     const completedIcon = document.createElement('i');
     completedIconContainer.classList.toggle('item-header-subitem');
-    completedIconContainer.classList.toggle('completed-item-icon');
+    completedIconContainer.classList.toggle('completed-icon-container');
+    uncompletedIcon.classList.toggle('material-icons');
+    uncompletedIcon.textContent = 'radio_button_unchecked';
+    completedIcon.classList.toggle('off');
     completedIcon.classList.toggle('material-icons');
-    completedIcon.textContent = 'radio_button_unchecked';
-    completedIconContainer.appendChild(completedIcon);
+    completedIcon.textContent = 'radio_button_checked';
+    uncompletedIcon.addEventListener('click', removeCurrentItem);
+    completedIconContainer.append(uncompletedIcon, completedIcon);
 
     const icons = {
       completedIcon: completedIconContainer,
@@ -208,7 +219,8 @@ function createCard(title='No title', dueDate='No due date', body='') {
   
   // Attach styles
   item.classList.toggle('item');
-  
+  item.addEventListener('transitionend', function() {this.remove();});
+
   item.appendChild(itemHeader);
   item.appendChild(itemBody);
 
@@ -227,13 +239,13 @@ function addItemButton() {
   return button;
 }
 
-function listView(htmlList, data) {
+function listView(itemList, data) {
   data.forEach((e) => {
     card = createCard(e.title, e.dueDate, e.body);
-    htmlList.appendChild(card);
+    itemList.appendChild(card);
   })
 
-  return htmlList;
+  return itemList;
 }
 
 function appendItemList(newItem) {
@@ -251,13 +263,56 @@ function appendItemList(newItem) {
   });
 }
 
-function initPage(list) {
+function createItemList(itemList) {
+  let itemListContainer = document.querySelector('.item-list');
+  if (!!itemListContainer) {
+    itemListContainer.remove();
+  }
+  itemListContainer = document.createElement('div');
+  itemListContainer.classList.toggle('item-list');
+  const newCardButton = addItemButton();
+  itemListContainer = listView(itemListContainer, itemList);
+  itemListContainer.appendChild(newCardButton);
+
+  return itemListContainer;
+}
+
+function createNavigator(projectList) {
+  const projectListsContainer = document.createElement('div');
+  const projects = document.createElement('span');
+  const expandProjectsIcon = document.createElement('i');
+
+  expandProjectsIcon.classList.toggle('material-icons');
+  expandProjectsIcon.textContent = 'expand_more';
+
+  const navigator = document.createElement('div');
+  const pL = projectList.getProjectList();
+  navigator.classList.toggle('navigator');
+  
+  let name = '';
+  for (let key in pL) {
+    const a = document.createElement('a');
+    name = pL[key].getName();
+    a.textContent = name;
+    a.addEventListener('click', function() {
+      const itemList = createItemList(pL[key].getItemList());
+      const UI = document.querySelector('.interface');
+      UI.appendChild(itemList);
+    })
+    if (name === 'Main' || name === 'Today')
+      navigator.appendChild(a);
+    else
+      projects.appendChild(a);
+  }
+  projectListsContainer.append(expandProjectsIcon, projects);
+  navigator.appendChild(projectListsContainer);
+  return navigator;
+}
+
+function initPage(projectList) {
   const icons = document.createElement('link');
   const container = document.createElement('div');
-  const navigator = document.createElement('div');
   const header = document.createElement('header');
-  const main = document.createElement('a');
-  const priority = document.createElement('a');
 
   // Setting up icons
   icons.setAttribute('rel', 'stylesheet');
@@ -265,38 +320,23 @@ function initPage(list) {
   const head = document.querySelector('head');
   head.appendChild(icons);
 
-  // Item list
-  let itemList = document.createElement('div');
-  itemList.classList.toggle('item-list');
-
   // General interface
   container.classList.toggle('interface');
-  navigator.classList.toggle('navigator');
-  main.textContent = 'Main';
-  priority.textContent= 'Priority';
+
 
   // Build interface
-  if (storageAvailable('localStorage')) {
-    const data = restoreLocal(list);
-    itemList = listView(itemList, data.list);
-  }
-  const newCardButton = addItemButton();
-  itemList.appendChild(newCardButton);
-  navigator.appendChild(main);
-  navigator.appendChild(priority);
+  const homeProject = projectList.getProjectList()['Main'];
+  const itemListContainer = createItemList(homeProject.getItemList());
+  const navigator = createNavigator(projectList);
+
   container.appendChild(navigator);
-  container.appendChild(itemList);
+  container.appendChild(itemListContainer);
 
   // Attach interface to html
   document.body.appendChild(header);
   document.body.appendChild(container);
   document.addEventListener('keydown', handleEscape);
 }
-
-// function updateDate() {
-//   const year, month, day;
-//   year, month, day = this.value.split('-');
-// }
 
 export {
   initPage,

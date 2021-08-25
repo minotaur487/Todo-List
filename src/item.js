@@ -8,7 +8,7 @@ function Item(title, dueDate, priority) {
   
   const setDescription = (text) => description = text;
   const setTitle = (text) => title = text;
-  return Object.assign(props, setDescription, setTitle);
+  return { setDescription, setTitle };
 }
 
 function ItemList() {
@@ -19,8 +19,10 @@ function ItemList() {
     localStorage.clear();
     list = [];
   }
+  const getItems = () => list;
+  const setItems = (l) => list = l;
 
-  return { list, addItem, clearItems };
+  return { setItems, getItems, addItem, clearItems };
 }
 
 function listModel() {

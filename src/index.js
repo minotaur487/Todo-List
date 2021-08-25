@@ -1,7 +1,17 @@
 import flatpickr from "flatpickr";
-import { initPage, appendItemList } from "./html";
-import { ItemList, Item } from "./object";
+import { initPage } from "./view";
+import { restoreLocal, storageAvailable } from './storage';
+import { ProjectList } from './project';
 
-const itemList = ItemList();
-// const newItem2 = Item('s', 'd', 'd');
-initPage(itemList);
+
+if (storageAvailable('localStorage')) {
+    let projectList = restoreLocal();
+    if (projectList)
+      initPage(projectList);
+    else
+      initPage(ProjectList());
+  }
+else {
+    const projectList = ProjectList();
+    initPage(projectList);
+}

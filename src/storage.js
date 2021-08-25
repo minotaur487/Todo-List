@@ -1,4 +1,5 @@
-import { Item, ItemList } from './object.js'
+import { Item } from './item'
+import Project from './project'
 
 function storageAvailable(type) {
     var storage;
@@ -29,17 +30,23 @@ const JSONtoItem = (item) => {
     return Item(item.title, item.dueDate, item.priority);
 }
 
-function saveLocal(listOfItems) {
-    localStorage.setItem('listOfItems', listOfItems);
+function saveLocal(projectList) {
+    localStorage.setItem('projectList', projectList);
 }
 
-function restoreLocal(itemList) {
-    const listOfItems = JSON.parse(localStorage.getItem('listOfItems'));
-    if (listOfItems) {
-        itemList.list = listOfItems.map(JSONtoItem);
+const JSONtoProject = (project) => {
+    const itemList = project.map(JSONtoItem);
+    return Project(project.getName(), itemList);
+}
+
+function restoreLocal() {
+    const projectList = JSON.parse(localStorage.getItem('projectList'));
+    if (projectList) {
+        const list = projectList.map(JSONtoProject);
+        projectList.setItemList(list);
     }
 
-    return itemList;
+    return projectList;
 }
 
 export {
