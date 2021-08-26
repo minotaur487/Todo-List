@@ -1,26 +1,30 @@
 import './style.css';
 import flatpickr from 'flatpickr';
-import { saveLocal } from './storage';
+import * as Storage from './storage';
 
+    // Helper Functions
 
 function toggleInput() {
   const inputTitle = this.nextElementSibling;
   this.classList.toggle('off');
 
   inputTitle.classList.toggle('off');
-  inputTitle.value = itemTitle.textContext;
+  inputTitle.value = this.textContext;
 }
 
 function removeCurrentItem() {
   const item = this.closest('.item');
+  const itemTitle = item.querySelector('.title-id');
   this.classList.toggle('off');
   this.nextElementSibling.classList.toggle('off');
   item.classList.toggle('completed-icon-onclick');
+  const project= document.querySelector('.current-project');
+  Storage.deleteItem(project.textContent, itemTitle.textContent);
 }
 
 function handleEscape(e) {
   if (e.key === 'Escape') {
-    const uninitializedItems = document.querySelector('input#input-title-id:not(.off)');
+    const uninitializedItems = document.querySelector('input.input-title-id:not(.off)');
     uninitializedItems.closest('.item').remove();
   }
 }
@@ -32,9 +36,12 @@ function renameItem(e) {
     return;
   }
   else if (e.key === 'Enter') {
-    const title = this.previousElementSibling;
-    title.textContent = this.value;
-    title.classList.toggle('off');
+    const titleElement = this.previousElementSibling;
+    const title = this.value;
+    const project= document.querySelector('.current-project');
+    Storage.updateTaskTitle(project.textContent, titleElement.textContent, title);
+    titleElement.textContent = title;
+    titleElement.classList.toggle('off');
     this.classList.toggle('off');
   }
 }
@@ -68,18 +75,27 @@ function editItemBody(e) {
     body.textContent = this.value;
     body.classList.toggle('off');
     this.classList.toggle('off');
+
+    const project= document.querySelector('.current-project');
+    const itemTitle = this.closest('.title-id');
+    Storage.updateTaskDescription(project.textContent, itemTitle.textContent, this.value);
   }
 }
 
 function addItemClick() {
+  if (document.querySelectorAll('.input-title-id.off').length > 1) {
+    return alert('You must finish filling out your current item.');
+  }
   const newItem = createCard();
   appendItemList(newItem);
 
-  const itemTitle = newItem.querySelector('#title-id');
-  const inputTitle = newItem.querySelector('#input-title-id');
+  const itemTitle = newItem.querySelector('.title-id');
+  const inputTitle = newItem.querySelector('.input-title-id');
   itemTitle.classList.toggle('off');
   inputTitle.classList.toggle('off');
   inputTitle.focus();
+  const project= document.querySelector('.current-project');
+  Storage.addTask(project.textContent, 'No title');
 }
 
 function toggleExpandCardBody() {
@@ -97,6 +113,8 @@ function toggleExpandCardBody() {
   }
 }
 
+    // View constructors
+
 function createItemHeader(title, dueDate) {
   function createTitle(t) {
     const titleContainer = document.createElement('div');
@@ -104,10 +122,10 @@ function createItemHeader(title, dueDate) {
     const itemTitle = document.createElement('span');
     inputTitle.setAttribute('type', 'text');
     inputTitle.classList.toggle('off');
-    inputTitle.setAttribute('id', 'input-title-id');
+    inputTitle.classList.toggle('input-title-id');
     inputTitle.setAttribute('maxlength', '20');
     inputTitle.setAttribute('size', '20');
-    itemTitle.setAttribute('id', 'title-id');
+    itemTitle.classList.toggle('title-id');
   
     inputTitle.addEventListener('keypress', renameItem);
     itemTitle.addEventListener('click', toggleInput);
@@ -240,6 +258,7 @@ function addItemButton() {
 }
 
 function listView(itemList, data) {
+  let card;
   data.forEach((e) => {
     card = createCard(e.title, e.dueDate, e.body);
     itemList.appendChild(card);
@@ -277,35 +296,106 @@ function createItemList(itemList) {
   return itemListContainer;
 }
 
-function createNavigator(projectList) {
-  const projectListsContainer = document.createElement('div');
-  const projects = document.createElement('span');
-  const expandProjectsIcon = document.createElement('i');
+function createNavigator(projectList, currentProjectName) {
+  function nameProject(e) {
+    if (e.key === 'Enter' && this.value === '') {
+      alert('Project name must not be blank');
+      this.focus();
+      return;
+    }
+    else if (e.key === 'Enter') {
+      const projectNameElement = this.previousElementSibling;
+      const name = this.value;
+      Storage.addProject(name);
+      projectNameElement.textContent = name;
+      projectNameElement.classList.toggle('off');
+      this.parentElement.removeChild(this);
+    }
+  }
+  function addProjectClick() {
+    // Build Input
+    const inputNewProject = document.createElement('input');
+    inputNewProject.setAttribute('type', 'text');
+    inputNewProject.setAttribute('id', 'input-new-project');
+    inputNewProject.addEventListener('keypress', nameProject);
+    inputNewProject.focus();
 
-  expandProjectsIcon.classList.toggle('material-icons');
-  expandProjectsIcon.textContent = 'expand_more';
+    // Build Label
+    const newProjectLabel = document.createElement('a');
+    newProjectLabel.classList.toggle('off');
+    const navContainer = document.querySelector('#project-nav-container');
+    navContainer.insertBefore(inputNewProject, navContainer.lastElementChild);
+    navContainer.insertBefore(newProjectLabel, navContainer.lastElementChild);
+  }
+  function createNavHeader() {
+    const projectNavHeader = document.createElement('div');
+    projectNavHeader.setAttribute('id', 'nav-header');
+
+    // Label
+    const projectLabel = document.createElement('span');
+    projectLabel.textContent = 'Lists';
+
+    // Expand Icon
+    const expandProjectsIcon = document.createElement('i');
+    expandProjectsIcon.classList.toggle('material-icons');
+    expandProjectsIcon.textContent = 'expand_more';
+    expandProjectsIcon.addEventListener('click', function() {
+      if (this.textContent === 'expand_more')
+        this.textContent = 'expand_less';
+      else
+        this.textContent = 'expand_more';
+      this.parentElement.nextElementSibling.classList.toggle('off');
+    })
+    projectNavHeader.append(expandProjectsIcon, projectLabel);
+    return projectNavHeader;
+  }
+  
+  const projectNavContainer = document.createElement('div');
+  const projects = document.createElement('div');
+
+  projectNavContainer.setAttribute('id', 'project-nav-container');
+  projects.setAttribute('id', 'project-nav-list');
+  projects.classList.toggle('off');
 
   const navigator = document.createElement('div');
-  const pL = projectList.getProjectList();
+  const pL = projectList.projectDict;
   navigator.classList.toggle('navigator');
   
   let name = '';
   for (let key in pL) {
     const a = document.createElement('a');
-    name = pL[key].getName();
+    name = pL[key].name;
     a.textContent = name;
     a.addEventListener('click', function() {
-      const itemList = createItemList(pL[key].getItemList());
-      const UI = document.querySelector('.interface');
-      UI.appendChild(itemList);
+      const itemList = createItemList(pL[key].itemList);
+      const view = document.querySelector('.interface');
+      view.appendChild(itemList);
+      const previousProject = document.querySelector('.current-project');
+      previousProject.classList.toggle('current-project');
+      this.classList.toggle('current-project');
     })
+    if (name === currentProjectName)
+      a.classList.toggle('current-project');
     if (name === 'Main' || name === 'Today')
+    {
       navigator.appendChild(a);
+    }
     else
       projects.appendChild(a);
   }
-  projectListsContainer.append(expandProjectsIcon, projects);
-  navigator.appendChild(projectListsContainer);
+
+  const button = document.createElement('div');
+  const icon = document.createElement('i');
+  icon.classList.toggle('material-icons');
+  icon.textContent = 'add';
+
+  button.setAttribute('id', 'add-project-button');
+  button.addEventListener('click', addProjectClick);
+  button.appendChild(icon);
+
+  const header = createNavHeader();
+  projectNavContainer.append(header, projects, button);
+  navigator.appendChild(projectNavContainer);
   return navigator;
 }
 
@@ -325,9 +415,9 @@ function initPage(projectList) {
 
 
   // Build interface
-  const homeProject = projectList.getProjectList()['Main'];
-  const itemListContainer = createItemList(homeProject.getItemList());
-  const navigator = createNavigator(projectList);
+  const homeProject = projectList.projectDict['Main'];
+  const itemListContainer = createItemList(homeProject.itemList);
+  const navigator = createNavigator(projectList, 'Main');
 
   container.appendChild(navigator);
   container.appendChild(itemListContainer);

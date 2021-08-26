@@ -1,40 +1,41 @@
-import { ItemList } from './item'
-
-function Project(name, itemList) {
+function Project(name) {
     const props = {
         name,
-        itemList
+        itemList: []
     }
 
-    const setName = (n) => props.name = n;
-    const getName = () => props.name;
-    const getItemList = () => props.itemList.getItems();
-    const appendItemList = (item) => props.itemList.addItem(item);
-    const resetItemList = () => props.itemList.clear();
-    return { setName, getName, getItemList, appendItemList, resetItemList};
+    const clearItems = () => {
+      itemList = []; // Must clear local storage
+    }
+
+    const addItem = (item) => props.itemList.push(item);
+    const findItem = (itemName) => props.itemList.find(e => e.title === itemName);
+    const removeItem = (itemName) => {
+      props.itemList = props.itemList.filter((item) => item.title !== itemName
+    )};
+    
+    const functions = {
+      clearItems, addItem, findItem, removeItem
+    }
+
+    return Object.assign(props, functions);
 }
 
 function ProjectList() {
-    const main = Project('Main', ItemList());
-    const today = Project('Today', ItemList());
-    let list = {};
-    list[main.getName()] = main;
-    list[today.getName()] = today;
+    const main = Project('Main');
+    const today = Project('Today');
+    const projectDict = {};
+    projectDict[main.name] = main;
+    projectDict[today.name] = today;
   
-    const addProject = (project) => {
-        const projectName = project.getName();
-        const projectObj = {};
-        projectObj[projectName] = project;
-        return Object.assign(list, projectObj);
-    }
     const clearItems = () => {
       localStorage.clear();
-      list = {};
+      projectDict = {};
     }
-    const getProjectList = () => list;
-    const setProjectList = (l) => list = l;
+
+    const deleteProject = (name) => delete projectDict[name];
   
-    return { setProjectList, getProjectList, addProject, clearItems };
+    return { projectDict, clearItems, deleteProject };
   }
 
 export {

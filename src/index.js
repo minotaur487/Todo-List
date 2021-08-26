@@ -1,15 +1,18 @@
 import flatpickr from "flatpickr";
 import { initPage } from "./view";
-import { restoreLocal, storageAvailable } from './storage';
+import * as Storage from './storage';
 import { ProjectList } from './project';
 
-
-if (storageAvailable('localStorage')) {
-    let projectList = restoreLocal();
+if (Storage.storageAvailable('localStorage')) {
+    // localStorage.clear();
+    let projectList = Storage.getProjectList();
     if (projectList)
       initPage(projectList);
-    else
-      initPage(ProjectList());
+    else {
+      const pL = ProjectList();
+      Storage.saveLocal(pL);
+      initPage(pL);
+    }
   }
 else {
     const projectList = ProjectList();
