@@ -5,7 +5,7 @@ function Project(name) {
     }
 
     const clearItems = () => {
-      itemList = []; // Must clear local storage
+      props.itemList = []; // Must clear local storage
     }
 
     const addItem = (item) => props.itemList.push(item);

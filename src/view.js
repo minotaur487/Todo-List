@@ -8,8 +8,8 @@ function toggleInput() {
   const inputTitle = this.nextElementSibling;
   this.classList.toggle('off');
 
+  inputTitle.value = this.textContent;
   inputTitle.classList.toggle('off');
-  inputTitle.value = this.textContext;
 }
 
 function removeCurrentItem() {
@@ -56,17 +56,24 @@ function toggleItemBody() {
 }
 
 function onChangeFunction(selectedDates, dateStr, instance) {
-  const inputBox = document.querySelector('.item-due-date').lastElementChild;
+  const inputBox = instance.element;
   const text = inputBox.previousElementSibling;
   inputBox.classList.toggle('off');
   text.classList.toggle('off');
-  text.textContent = instance.selectedDates[0].toString();
+  const date = instance.selectedDates[0];
+  text.textContent = `${date.getMonth()+1}/${date.getDate()}/${date.getFullYear()}`;
+  const project= document.querySelector('.current-project');
+  const itemTitle = text.closest('.item').querySelector('.title-id');
+  Storage.updateTaskDueDate(project.textContent, itemTitle.textContent, date);
 }
 
 function toggleDueDate(e) {
-  this.classList.toggle('off');
-  this.nextElementSibling.classList.toggle('off');
-  this.nextElementSibling.focus();
+  const container = this.closest('.item-due-date');
+  const text = container.querySelector('p');
+  const input = container.querySelector('input');
+  text.classList.toggle('off');
+  input.classList.toggle('off');
+  input.focus();
 }
 
 function editItemBody(e) {
@@ -83,7 +90,7 @@ function editItemBody(e) {
 }
 
 function addItemClick() {
-  if (document.querySelectorAll('.input-title-id.off').length > 1) {
+  if (document.querySelectorAll('.input-title-id:not(.off)').length > 0) {
     return alert('You must finish filling out your current item.');
   }
   const newItem = createCard();
@@ -138,18 +145,21 @@ function createItemHeader(title, dueDate) {
     return titleContainer;
   }
 
-  function createDueDate(d) {
+  function createDueDate(date) {
     const dueDateContainer = document.createElement('div');
     const inputDueDate = document.createElement('input');
     const dueDateText = document.createElement('p');
+    const calendarIcon = document.createElement('i');
+    calendarIcon.classList.toggle('material-icons');
+    calendarIcon.textContent = 'today';
+    calendarIcon.addEventListener('click', toggleDueDate);
     inputDueDate.setAttribute('type', 'text');
     dueDateText.addEventListener('click', toggleDueDate);
+    dueDateText.textContent = `${date.getMonth()+1}/${date.getDate()}/${date.getFullYear()}`;
     inputDueDate.classList.toggle('off');
-    dueDateText.textContent = d;
     dueDateContainer.classList.toggle('item-due-date');
     dueDateContainer.classList.toggle('item-header-subitem');
-    dueDateContainer.appendChild(dueDateText);
-    dueDateContainer.appendChild(inputDueDate);
+    dueDateContainer.append(calendarIcon, dueDateText, inputDueDate);
     return dueDateContainer;
   }
   
@@ -230,7 +240,7 @@ function createItemBody(body) {
   return itemBody;
 }
 
-function createCard(title='No title', dueDate='No due date', body='') {
+function createCard(title='No title', dueDate=new Date(), body='') {
   const item = document.createElement('div');
   const itemHeader = createItemHeader(title, dueDate);
   const itemBody = createItemBody(body);
@@ -261,6 +271,11 @@ function listView(itemList, data) {
   let card;
   data.forEach((e) => {
     card = createCard(e.title, e.dueDate, e.body);
+    flatpickr(card.querySelector('.item-due-date').querySelector('input'), {
+      onChange: onChangeFunction,
+      // altInput: true,
+      // altFormat: "F j, Y"
+    });
     itemList.appendChild(card);
   })
 
@@ -269,7 +284,6 @@ function listView(itemList, data) {
 
 function appendItemList(newItem) {
   const itemList = document.querySelector('.item-list');
-  // const newItem = createCard(data.title, data.dueDate, data.body);
   
   if (itemList.lastElementChild.tagName === 'DIV') {
     itemList.insertBefore(newItem, itemList.lastElementChild)
@@ -277,23 +291,31 @@ function appendItemList(newItem) {
   else {
     itemList.appendChild(newItem);
   }
-  flatpickr(newItem.querySelector('.item-due-date').lastElementChild, {
-    onChange: onChangeFunction
+  flatpickr(newItem.querySelector('.item-due-date').querySelector('input'), {
+    onChange: onChangeFunction,
+    // altInput: true,
+    // altFormat: "F j, Y"
   });
 }
 
 function createItemList(itemList) {
-  let itemListContainer = document.querySelector('.item-list');
+  let itemListContainer = document.querySelector('#item-list-container');
   if (!!itemListContainer) {
     itemListContainer.remove();
   }
+  const itemListText = document.createElement('div');
+  const container = document.createElement('div');
+  itemListText.setAttribute('id', 'item-list-label')
+  container.setAttribute('id', 'item-list-container');
   itemListContainer = document.createElement('div');
   itemListContainer.classList.toggle('item-list');
   const newCardButton = addItemButton();
   itemListContainer = listView(itemListContainer, itemList);
   itemListContainer.appendChild(newCardButton);
-
-  return itemListContainer;
+  const project= document.querySelector('.current-project');
+  itemListText.textContent = project ? project.textContent : 'Main';
+  container.append(itemListText, itemListContainer);
+  return container;
 }
 
 function createNavigator(projectList, currentProjectName) {
@@ -304,12 +326,13 @@ function createNavigator(projectList, currentProjectName) {
       return;
     }
     else if (e.key === 'Enter') {
-      const projectNameElement = this.previousElementSibling;
+      const projectNameElement = this.previousElementSibling.lastElementChild.lastElementChild;
       const name = this.value;
       Storage.addProject(name);
       projectNameElement.textContent = name;
       projectNameElement.classList.toggle('off');
       this.parentElement.removeChild(this);
+      document.querySelector('#add-project-button').classList.toggle('off');
     }
   }
   function addProjectClick() {
@@ -322,11 +345,25 @@ function createNavigator(projectList, currentProjectName) {
 
     // Build Label
     const newProjectLabel = document.createElement('a');
+    const newProjectContainer = document.createElement('div');
+    newProjectContainer.classList.toggle('project-label-container');
+    newProjectContainer.append(newProjectLabel);
     newProjectLabel.classList.toggle('off');
     const navContainer = document.querySelector('#project-nav-container');
+    const navList = document.querySelector('#project-nav-list');
+    navList.append(newProjectContainer);
     navContainer.insertBefore(inputNewProject, navContainer.lastElementChild);
-    navContainer.insertBefore(newProjectLabel, navContainer.lastElementChild);
+    document.querySelector('#add-project-button').classList.toggle('off');
   }
+
+  function expandProjectList() {
+    if (this.textContent === 'expand_more')
+      this.textContent = 'expand_less';
+    else if (this.textContent === 'expand_less')
+      this.textContent = 'expand_more';
+    this.parentElement.nextElementSibling.classList.toggle('off');
+  }
+  
   function createNavHeader() {
     const projectNavHeader = document.createElement('div');
     projectNavHeader.setAttribute('id', 'nav-header');
@@ -339,13 +376,8 @@ function createNavigator(projectList, currentProjectName) {
     const expandProjectsIcon = document.createElement('i');
     expandProjectsIcon.classList.toggle('material-icons');
     expandProjectsIcon.textContent = 'expand_more';
-    expandProjectsIcon.addEventListener('click', function() {
-      if (this.textContent === 'expand_more')
-        this.textContent = 'expand_less';
-      else
-        this.textContent = 'expand_more';
-      this.parentElement.nextElementSibling.classList.toggle('off');
-    })
+    expandProjectsIcon.addEventListener('click', expandProjectList)
+    projectLabel.addEventListener('click', expandProjectList)
     projectNavHeader.append(expandProjectsIcon, projectLabel);
     return projectNavHeader;
   }
@@ -367,21 +399,42 @@ function createNavigator(projectList, currentProjectName) {
     name = pL[key].name;
     a.textContent = name;
     a.addEventListener('click', function() {
+      const previousProject = document.querySelector('.current-project');
+      previousProject.classList.toggle('current-project');
+      if (previousProject.style.removeProperty) {
+        previousProject.parentElement.style.removeProperty('background-color');
+      } else {
+        previousProject.parentElement.style.removeAttribute('background-color');
+      }
+      this.parentElement.style.backgroundColor = 'darkgrey';
+      this.classList.toggle('current-project');
+      if (this.textContent === 'Today') {
+        const projectList = Storage.getProjectList();
+        Storage.loadToday();
+      }
+      const pL = Storage.getProjectList().projectDict;
       const itemList = createItemList(pL[key].itemList);
       const view = document.querySelector('.interface');
       view.appendChild(itemList);
-      const previousProject = document.querySelector('.current-project');
-      previousProject.classList.toggle('current-project');
-      this.classList.toggle('current-project');
     })
-    if (name === currentProjectName)
+    const labelContainer = document.createElement('div');
+    labelContainer.classList.toggle('project-label-container');
+    if (name === currentProjectName) {
       a.classList.toggle('current-project');
-    if (name === 'Main' || name === 'Today')
-    {
-      navigator.appendChild(a);
+      labelContainer.style.backgroundColor = 'darkgrey';
+    }
+    if (name === 'Main' || name === 'Today') {
+      const labelIcon = document.createElement('i');
+      labelIcon.classList.toggle('material-icons');
+      labelIcon.textContent = name === 'Main' ? 'list' : 'calendar_today';
+      labelContainer.append(labelIcon, a);
+      navigator.appendChild(labelContainer);
     }
     else
-      projects.appendChild(a);
+    {
+      labelContainer.append(a);
+      projects.appendChild(labelContainer);
+    }
   }
 
   const button = document.createElement('div');
@@ -403,6 +456,7 @@ function initPage(projectList) {
   const icons = document.createElement('link');
   const container = document.createElement('div');
   const header = document.createElement('header');
+  header.textContent = 'Todo List';
 
   // Setting up icons
   icons.setAttribute('rel', 'stylesheet');
@@ -415,9 +469,9 @@ function initPage(projectList) {
 
 
   // Build interface
+  const navigator = createNavigator(projectList, 'Main');
   const homeProject = projectList.projectDict['Main'];
   const itemListContainer = createItemList(homeProject.itemList);
-  const navigator = createNavigator(projectList, 'Main');
 
   container.appendChild(navigator);
   container.appendChild(itemListContainer);

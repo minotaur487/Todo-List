@@ -1,6 +1,13 @@
 import Item from './item'
 import { Project, ProjectList } from './project'
 
+const isToday = (someDate) => {
+    const today = new Date()
+    return someDate.getDate() == today.getDate() &&
+      someDate.getMonth() == today.getMonth() &&
+      someDate.getFullYear() == today.getFullYear()
+  }
+
 export function storageAvailable(type) {
     var storage;
     try {
@@ -27,6 +34,8 @@ export function storageAvailable(type) {
 }
 
 const JSONtoItem = (item) => {
+    const date = new Date(item.dueDate);
+    item.dueDate = date;
     return Object.assign(Item(), item);
 }
 
@@ -62,9 +71,9 @@ export function addProject(name) {
     saveLocal(projectList);
 }
 
-export function addTask(projectName, itemName) {
+export function addTask(projectName, itemName, dueDate=Date()) {
     const projectList = getProjectList();
-    const item = Item(itemName, '', '');
+    const item = Item(itemName, dueDate, '');
     projectList.projectDict[projectName].addItem(item);
     saveLocal(projectList);
 }
@@ -90,5 +99,28 @@ export function updateTaskDescription(projectName, itemName, body) {
 export function deleteItem(projectName, itemName) {
     const projectList = getProjectList();
     projectList.projectDict[projectName].removeItem(itemName);
+    if (projectName === 'Today') {
+        for (let project in projectList.projectDict) {
+            projectList.projectDict[project].itemList.forEach(element => {
+                if (element.title === itemName && isToday(element.dueDate))
+                    projectList.projectDict[project].removeItem(itemName);
+            });
+        }
+    }
     saveLocal(projectList);
 }
+
+export function loadToday() {    
+    const projectList = getProjectList();
+    const projectDict = projectList.projectDict;
+    projectList.projectDict['Today'].clearItems();
+    let cumulativeItemList = [];
+    for (let project in projectDict) {
+      const filteredItemList = projectDict[project].itemList.filter((item) => {
+        return isToday(item.dueDate);
+      })
+      cumulativeItemList = cumulativeItemList.concat(filteredItemList);
+    }
+    projectList.projectDict['Today'].itemList = cumulativeItemList;
+    saveLocal(projectList);
+  }
