@@ -77,16 +77,14 @@ function toggleDueDate(e) {
 }
 
 function editItemBody(e) {
-  if (e.key === 'Enter') {
-    const body = this.previousElementSibling;
-    body.textContent = this.value;
-    body.classList.toggle('off');
-    this.classList.toggle('off');
+  const body = e.previousElementSibling;
+  body.textContent = e.value;
+  body.classList.toggle('off');
+  e.classList.toggle('off');
 
-    const project= document.querySelector('.current-project');
-    const itemTitle = this.closest('.title-id');
-    Storage.updateTaskDescription(project.textContent, itemTitle.textContent, this.value);
-  }
+  const project= document.querySelector('.current-project');
+  const itemTitle = e.parentElement.previousElementSibling.querySelector('.title-id');
+  Storage.updateTaskDescription(project.textContent, itemTitle.textContent, e.value);
 }
 
 function addItemClick() {
@@ -103,6 +101,26 @@ function addItemClick() {
   inputTitle.focus();
   const project= document.querySelector('.current-project');
   Storage.addTask(project.textContent, 'No title');
+}
+
+function changeProject() {
+  const previousProject = document.querySelector('.current-project');
+  previousProject.classList.toggle('current-project');
+  if (previousProject.style.removeProperty) {
+    previousProject.parentElement.style.removeProperty('background-color');
+  } else {
+    previousProject.parentElement.style.removeAttribute('background-color');
+  }
+  this.parentElement.style.backgroundColor = 'darkgrey';
+  this.classList.toggle('current-project');
+  if (this.textContent === 'Today') {
+    const projectList = Storage.getProjectList();
+    Storage.loadToday();
+  }
+  const pL = Storage.getProjectList().projectDict;
+  const itemList = createItemList(pL[this.textContent].itemList);
+  const view = document.querySelector('.interface');
+  view.appendChild(itemList);
 }
 
 function toggleExpandCardBody() {
@@ -219,19 +237,30 @@ function createItemHeader(title, dueDate) {
 }
 
 function createItemBody(body) {
+  function handleDescriptionClick() {
+    const textBox = document.querySelector('.item-body:not(.off)').querySelector('textarea:not(.off)');
+    textBox.editItemBody({key: 'Enter'});
+  }
   const itemBody = document.createElement('div');
   
   // Elements inside of the containers
   const bodyText = document.createElement('p');
   const inputBody = document.createElement('textarea');
 
+  // document.addEventListener('click', handleDescriptionClick);
+  inputBody.addEventListener('change', function(e) {
+    editItemBody(this);
+  });
   inputBody.classList.toggle('off');
   inputBody.setAttribute('maxlength', '1000');
   inputBody.setAttribute('rows', '5');
   inputBody.setAttribute('cols', '70');
-  inputBody.addEventListener('keypress', editItemBody);
+  inputBody.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter')
+      editItemBody(this);
+  });
   itemBody.addEventListener('click', toggleItemBody);
-  itemBody.textContent = body;
+  bodyText.textContent = body;
   itemBody.classList.toggle('item-body');
   itemBody.classList.toggle('off');
   itemBody.appendChild(bodyText);
@@ -270,7 +299,7 @@ function addItemButton() {
 function listView(itemList, data) {
   let card;
   data.forEach((e) => {
-    card = createCard(e.title, e.dueDate, e.body);
+    card = createCard(e.title, e.dueDate, e.description);
     flatpickr(card.querySelector('.item-due-date').querySelector('input'), {
       onChange: onChangeFunction,
       // altInput: true,
@@ -349,6 +378,7 @@ function createNavigator(projectList, currentProjectName) {
     newProjectContainer.classList.toggle('project-label-container');
     newProjectContainer.append(newProjectLabel);
     newProjectLabel.classList.toggle('off');
+    newProjectLabel.addEventListener('click', changeProject)
     const navContainer = document.querySelector('#project-nav-container');
     const navList = document.querySelector('#project-nav-list');
     navList.append(newProjectContainer);
@@ -398,25 +428,7 @@ function createNavigator(projectList, currentProjectName) {
     const a = document.createElement('a');
     name = pL[key].name;
     a.textContent = name;
-    a.addEventListener('click', function() {
-      const previousProject = document.querySelector('.current-project');
-      previousProject.classList.toggle('current-project');
-      if (previousProject.style.removeProperty) {
-        previousProject.parentElement.style.removeProperty('background-color');
-      } else {
-        previousProject.parentElement.style.removeAttribute('background-color');
-      }
-      this.parentElement.style.backgroundColor = 'darkgrey';
-      this.classList.toggle('current-project');
-      if (this.textContent === 'Today') {
-        const projectList = Storage.getProjectList();
-        Storage.loadToday();
-      }
-      const pL = Storage.getProjectList().projectDict;
-      const itemList = createItemList(pL[key].itemList);
-      const view = document.querySelector('.interface');
-      view.appendChild(itemList);
-    })
+    a.addEventListener('click', changeProject);
     const labelContainer = document.createElement('div');
     labelContainer.classList.toggle('project-label-container');
     if (name === currentProjectName) {
